@@ -1,0 +1,17 @@
+[project]
+name = "epsilon-url-data-extraction"
+version = "0.1.0"
+description = "HTTP API for extracting structured information from web pages"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "httpx",
+    "beautifulsoup4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+]
