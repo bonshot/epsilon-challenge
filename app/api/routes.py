@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.schemas.extraction import ExtractRequest, PageResponse
 
@@ -6,16 +6,13 @@ router = APIRouter()
 
 
 @router.post("/extract", response_model=PageResponse)
-async def extract_url(request: ExtractRequest):
-    return {
-        "requested_url": request.url,
-        "final_url": request.url,
-        "status_code": 200,
-        "title": None,
-        "description": None,
-        "text": "",
-        "links": [],
-    }
+async def extract_url(
+    request: ExtractRequest,
+    http_request: Request,
+):
+    service = http_request.app.state.extraction_service
+
+    return await service.extract(request.url)
 
 
 @router.get("/health")
