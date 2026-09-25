@@ -88,4 +88,5 @@ class URLValidator:
             or address.is_loopback
             or address.is_link_local
             or address.is_reserved
+            or address.is_unspecified
         )

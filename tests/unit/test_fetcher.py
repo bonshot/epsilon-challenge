@@ -254,3 +254,27 @@ async def test_fetch_rejects_too_many_redirects(validator):
         await fetcher.fetch("https://example.com")
 
     assert len(requested_urls) == 3
+
+@pytest.mark.asyncio
+async def test_fetch_returns_redirect_response_without_location(validator):
+    def handler(request):
+        return httpx.Response(
+            status_code=302,
+            headers={"content-type": "text/html"},
+            content=b"redirect response",
+        )
+
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(handler),
+    )
+
+    fetcher = URLFetcher(
+        client=client,
+        url_validator=validator,
+    )
+
+    result = await fetcher.fetch("https://example.com")
+
+    assert result.status_code == 302
+    assert result.final_url == "https://example.com"
+    assert result.content == b"redirect response"

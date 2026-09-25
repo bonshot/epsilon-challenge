@@ -6,7 +6,7 @@ from app.services.extraction import (
     ExtractionService,
     UnsupportedContentTypeError,
 )
-from app.services.fetcher import FetchResult
+from app.services.fetcher import FetchError, FetchResult
 from app.services.parser import ParsedLink, ParsedPage
 
 
@@ -136,8 +136,8 @@ async def test_extract_propagates_fetch_error(
     fetcher,
 ):
     fetcher.fetch = AsyncMock(
-        side_effect=RuntimeError("fetch failed"),
+        side_effect=FetchError("fetch failed"),
     )
 
-    with pytest.raises(RuntimeError, match="fetch failed"):
+    with pytest.raises(FetchError, match="fetch failed"):
         await service.extract("https://example.com")

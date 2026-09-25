@@ -1,11 +1,19 @@
-from unittest.mock import AsyncMock
-
 import pytest
 from fastapi.testclient import TestClient
 
+from unittest.mock import AsyncMock
 from app.main import app
-from app.services.fetcher import FetchResult, FetchTimeoutError, ResponseTooLargeError, FetchError, TooManyRedirectsError
-from app.security.url_validator import URLValidationError, URLBlockedError
+from app.security.url_validator import (
+    URLBlockedError,
+    URLValidationError,
+)
+from app.services.fetcher import (
+    FetchError,
+    FetchResult,
+    FetchTimeoutError,
+    ResponseTooLargeError,
+    TooManyRedirectsError,
+)
 
 
 @pytest.fixture
@@ -14,30 +22,40 @@ def client():
         yield test_client
 
 
-def test_extract_url_returns_extracted_page(client):
-    app.state.fetcher.fetch = AsyncMock(
-        return_value=FetchResult(
-            requested_url="https://example.com",
-            final_url="https://example.com/",
-            status_code=200,
-            content_type="text/html",
-            content=b"""
-                <html>
-                    <head>
-                        <title>Example Page</title>
-                        <meta
-                            name="description"
-                            content="Example description"
-                        >
-                    </head>
-                    <body>
-                        <h1>Hello World</h1>
-                        <p>This is a test page.</p>
-                        <a href="/about">About</a>
-                    </body>
-                </html>
-            """,
-        )
+@pytest.fixture
+def mock_fetch():
+    original_fetch = app.state.fetcher.fetch
+
+    mock = AsyncMock()
+    app.state.fetcher.fetch = mock
+
+    yield mock
+
+    app.state.fetcher.fetch = original_fetch
+
+
+def test_extract_url_returns_extracted_page(client, mock_fetch):
+    mock_fetch.return_value = FetchResult(
+        requested_url="https://example.com",
+        final_url="https://example.com/",
+        status_code=200,
+        content_type="text/html",
+        content=b"""
+            <html>
+                <head>
+                    <title>Example Page</title>
+                    <meta
+                        name="description"
+                        content="Example description"
+                    >
+                </head>
+                <body>
+                    <h1>Hello World</h1>
+                    <p>This is a test page.</p>
+                    <a href="/about">About</a>
+                </body>
+            </html>
+        """,
     )
 
     response = client.post(
@@ -62,10 +80,9 @@ def test_extract_url_returns_extracted_page(client):
         ],
     }
 
-def test_extract_url_returns_400_for_invalid_url(client):
-    app.state.fetcher.fetch = AsyncMock(
-        side_effect=URLValidationError
-    )
+
+def test_extract_url_returns_400_for_invalid_url(client, mock_fetch):
+    mock_fetch.side_effect = URLValidationError
 
     response = client.post(
         "/extract",
@@ -81,10 +98,9 @@ def test_extract_url_returns_400_for_invalid_url(client):
         }
     }
 
-def test_extract_url_returns_403_for_blocked_url(client):
-    app.state.fetcher.fetch = AsyncMock(
-        side_effect=URLBlockedError
-    )
+
+def test_extract_url_returns_403_for_blocked_url(client, mock_fetch):
+    mock_fetch.side_effect = URLBlockedError
 
     response = client.post(
         "/extract",
@@ -100,10 +116,9 @@ def test_extract_url_returns_403_for_blocked_url(client):
         }
     }
 
-def test_extract_url_returns_504_for_fetch_timeout(client):
-    app.state.fetcher.fetch = AsyncMock(
-        side_effect=FetchTimeoutError
-    )
+
+def test_extract_url_returns_504_for_fetch_timeout(client, mock_fetch):
+    mock_fetch.side_effect = FetchTimeoutError
 
     response = client.post(
         "/extract",
@@ -119,10 +134,9 @@ def test_extract_url_returns_504_for_fetch_timeout(client):
         }
     }
 
-def test_extract_url_returns_413_for_large_response(client):
-    app.state.fetcher.fetch = AsyncMock(
-        side_effect=ResponseTooLargeError
-    )
+
+def test_extract_url_returns_413_for_large_response(client, mock_fetch):
+    mock_fetch.side_effect = ResponseTooLargeError
 
     response = client.post(
         "/extract",
@@ -138,15 +152,17 @@ def test_extract_url_returns_413_for_large_response(client):
         }
     }
 
-def test_extract_url_returns_415_for_unsupported_content_type(client):
-    app.state.fetcher.fetch = AsyncMock(
-        return_value=FetchResult(
-            requested_url="https://example.com/data.json",
-            final_url="https://example.com/data.json",
-            status_code=200,
-            content_type="application/json",
-            content=b'{"message": "hello"}',
-        )
+
+def test_extract_url_returns_415_for_unsupported_content_type(
+    client,
+    mock_fetch,
+):
+    mock_fetch.return_value = FetchResult(
+        requested_url="https://example.com/data.json",
+        final_url="https://example.com/data.json",
+        status_code=200,
+        content_type="application/json",
+        content=b'{"message": "hello"}',
     )
 
     response = client.post(
@@ -163,10 +179,9 @@ def test_extract_url_returns_415_for_unsupported_content_type(client):
         }
     }
 
-def test_extract_url_returns_502_for_fetch_error(client):
-    app.state.fetcher.fetch = AsyncMock(
-        side_effect=FetchError
-    )
+
+def test_extract_url_returns_502_for_fetch_error(client, mock_fetch):
+    mock_fetch.side_effect = FetchError
 
     response = client.post(
         "/extract",
@@ -182,10 +197,12 @@ def test_extract_url_returns_502_for_fetch_error(client):
         }
     }
 
-def test_extract_url_returns_502_for_too_many_redirects(client):
-    app.state.fetcher.fetch = AsyncMock(
-        side_effect=TooManyRedirectsError
-    )
+
+def test_extract_url_returns_502_for_too_many_redirects(
+    client,
+    mock_fetch,
+):
+    mock_fetch.side_effect = TooManyRedirectsError
 
     response = client.post(
         "/extract",
@@ -200,6 +217,7 @@ def test_extract_url_returns_502_for_too_many_redirects(client):
             "message": "The target URL exceeded the maximum allowed redirects.",
         }
     }
+
 
 def test_health_check(client):
     response = client.get("/health")

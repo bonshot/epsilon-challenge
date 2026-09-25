@@ -59,7 +59,9 @@ async def test_validate_rejects_invalid_urls(validator, url):
         "http://172.16.0.1",
         "http://192.168.1.1",
         "http://169.254.169.254",
+        "http://0.0.0.0",
         "http://[::1]",
+        "http://[::]",
     ],
 )
 async def test_validate_blocks_private_or_special_ip_addresses(

@@ -9,12 +9,12 @@ router = APIRouter()
 async def extract_url(
     request: ExtractRequest,
     http_request: Request,
-):
+) -> PageResponse:
     service = http_request.app.state.extraction_service
 
     return await service.extract(request.url)
 
 
 @router.get("/health")
-async def health_check():
+async def health_check()  -> dict[str, str]:
     return {"status": "ok"}
